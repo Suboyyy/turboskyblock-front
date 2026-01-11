@@ -200,6 +200,7 @@ export default function RecipesPage() {
                   selectOption(opt);
                 }}
                 tabIndex={-1}
+                // eslint-disable-next-line jsx-a11y/role-has-required-aria-props
                 role="option"
               >
                 {opt.label}

@@ -25,6 +25,7 @@ export default function ProjectDetailPage() {
   const [progressTree, setProgressTree] = useState<TreeNode | null>(null);
   const [editingPath, setEditingPath] = useState<string[] | null>(null);
   const [tempQuantity, setTempQuantity] = useState<number>(0);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set()); // collapsible branches
 
   const loadData = useCallback(async () => {
     try {
@@ -68,6 +69,17 @@ export default function ProjectDetailPage() {
     setTempQuantity(0);
   };
 
+  const toggleCollapse = (pathKey: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(pathKey)) next.delete(pathKey);
+      else next.add(pathKey);
+      return next;
+    });
+  };
+
+  const isCollapsed = (pathKey: string) => collapsed.has(pathKey);
+
   const renderTreeNode = (node: TreeNode, depth: number = 0, path: string[] = []) => {
     const isCompleted = node.progress >= 100;
     const indentStyle = { marginLeft: `${depth * 30}px` };
@@ -78,13 +90,29 @@ export default function ProjectDetailPage() {
       <div key={pathKey} className="mb-2">
         <div className={`tree-node ${isCompleted ? 'completed' : ''}`} style={indentStyle}>
           <div className="d-flex justify-content-between align-items-start mb-2">
-            <div className="flex-grow-1">
-              <h6 className="mb-1">
-                {node.isBase && '🔹 '}
-                <strong>{node.itemName}</strong>
-              </h6>
-              <div className="small text-muted">
-                Requis: {node.quantity} | Possédé: {node.currentQuantity}
+            <div className="flex-grow-1 d-flex align-items-start">
+              {node.children && node.children.length > 0 ? (
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  className="me-2 px-2 py-0"
+                  onClick={() => toggleCollapse(pathKey)}
+                  aria-expanded={!isCollapsed(pathKey)}
+                  aria-label={isCollapsed(pathKey) ? 'Expand branch' : 'Collapse branch'}
+                >
+                  {isCollapsed(pathKey) ? '▸' : '▾'}
+                </Button>
+              ) : (
+                <span className="me-2" style={{ width: '28px' }} />
+              )}
+              <div>
+                <h6 className="mb-1">
+                  {node.isBase && '🔹 '}
+                  <strong>{node.itemName}</strong>
+                </h6>
+                <div className="small text-muted">
+                  Requis: {node.quantity} | Possédé: {node.currentQuantity}
+                </div>
               </div>
             </div>
             <Badge bg={isCompleted ? 'success' : node.progress > 0 ? 'warning' : 'secondary'}>
@@ -104,7 +132,7 @@ export default function ProjectDetailPage() {
                 type="number"
                 min="0"
                 value={tempQuantity}
-                onChange={e => setTempQuantity(parseInt(e.target.value) || 0)}
+                onChange={e => setTempQuantity(parseInt(e.target.value, 10) || 0)}
                 autoFocus
                 size="sm"
               />
@@ -130,7 +158,7 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {node.children && node.children.length > 0 && (
+        {!isCollapsed(pathKey) && node.children && node.children.length > 0 && (
           <div className="tree-node-children">
             {node.children.map(child => renderTreeNode(child, depth + 1, currPath))}
           </div>
